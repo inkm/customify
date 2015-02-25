@@ -228,3 +228,39 @@
   border-bottom: 7px solid transparent;
   content: '';
 }
+
+/**
+ * Toolbar
+ */
+#customize-theme-controls #accordion-section-customify_toolbar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+}
+#customize-theme-controls #accordion-section-customify_toolbar .accordion-section-content {
+  display: block !important;
+}
+#customize-theme-controls #accordion-section-customify_toolbar .accordion-section-content > li {
+  display: inline-block !important;
+  width: auto;
+}
+#customize-theme-controls #accordion-section-customify_toolbar .accordion-section-title {
+  display: none;
+}
+#customize-theme-controls #accordion-section-customify_toolbar .customify_button {
+  display: inline-block;
+  border-radius: 5px;
+}
+
+/**
+ *
+ */
+.reset_panel {
+  position: absolute;
+  bottom: -25px;
+  right: 0;
+}
+
+/*# sourceMappingURL=customizer.css.map */

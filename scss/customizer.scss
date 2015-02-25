@@ -365,3 +365,42 @@ $popup 		: 275px;
 	border-bottom: 7px solid transparent;
 	content: '';
 }
+
+/**
+ * Toolbar
+ */
+
+#customize-theme-controls #accordion-section-customify_toolbar {
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	width: 100%;
+
+	.accordion-section-content {
+		display:block !important;
+
+		& > li {
+			display: inline-block !important;
+			width: auto;
+		}
+	}
+
+	.accordion-section-title {
+		display: none;
+	}
+
+	.customify_button {
+		display: inline-block;
+		border-radius: 5px;
+	}
+}
+
+/**
+ *
+ */
+.reset_panel {
+	position: absolute;
+	bottom: -25px;
+	right:0;
+}

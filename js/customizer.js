@@ -1,4 +1,141 @@
 (function($, exports){
+	/*
+	 Simple Javascript undo and redo.
+	 https://github.com/ArthurClemens/Javascript-Undo-Manager
+	 */
+	Array.prototype.removeFromTo = function(from, to) {
+		this.splice(from,
+			!to ||
+			1 + to - from + (!(to < 0 ^ from >= 0) && (to < 0 || -1) * this.length));
+		return this.length;
+	};
+
+	var UndoManager = function () {
+		"use strict";
+
+		var commands = [],
+			index = -1,
+			limit = 0,
+			isExecuting = false,
+			callback,
+
+		// functions
+			execute;
+
+		execute = function(command, action) {
+			if (!command || typeof command[action] !== "function") {
+				return this;
+			}
+			isExecuting = true;
+
+			command[action]();
+
+			isExecuting = false;
+			return this;
+		};
+
+		return {
+
+			/*
+			 Add a command to the queue.
+			 */
+			add: function (command) {
+				if (isExecuting) {
+					return this;
+				}
+				// if we are here after having called undo,
+				// invalidate items higher on the stack
+				commands.splice(index + 1, commands.length - index);
+
+				commands.push(command);
+
+				// if limit is set, remove items from the start
+				if (limit && commands.length > limit) {
+					commands.removeFromTo(0, -(limit+1));
+				}
+
+				// set the current index to the end
+				index = commands.length - 1;
+				if (callback) {
+					callback();
+				}
+				return this;
+			},
+
+			/*
+			 Pass a function to be called on undo and redo actions.
+			 */
+			setCallback: function (callbackFunc) {
+				callback = callbackFunc;
+			},
+
+			/*
+			 Perform undo: call the undo function at the current index and decrease the index by 1.
+			 */
+			undo: function () {
+				var command = commands[index];
+				if (!command) {
+					return this;
+				}
+				execute(command, "undo");
+				index -= 1;
+				if (callback) {
+					callback();
+				}
+				return this;
+			},
+
+			/*
+			 Perform redo: call the redo function at the next index and increase the index by 1.
+			 */
+			redo: function () {
+				var command = commands[index + 1];
+				if (!command) {
+					return this;
+				}
+				execute(command, "redo");
+				index += 1;
+				if (callback) {
+					callback();
+				}
+				return this;
+			},
+
+			/*
+			 Clears the memory, losing all stored states. Reset the index.
+			 */
+			clear: function () {
+				var prev_size = commands.length;
+
+				commands = [];
+				index = -1;
+
+				if (callback && (prev_size > 0)) {
+					callback();
+				}
+			},
+
+			hasUndo: function () {
+				return index !== -1;
+			},
+
+			hasRedo: function () {
+				return index < (commands.length - 1);
+			},
+
+			getCommands: function () {
+				return commands;
+			},
+
+			setLimit: function (l) {
+				limit = l;
+			}
+		};
+	};
+
+	var undo_manager_timeout = null,
+		undoManager = new UndoManager();
+
 	$(document).ready(function(){
 		// when the customizer is ready prepare our fields events
 		wp.customize.bind('ready', function(){
@@ -38,6 +175,162 @@
 					$(this).siblings('.range-value').val($(this).val());
 				});
 			});
+
+			// reset_button
+			$(document).on('click', '#customize-control-reset_customify button', function( ev ){
+				ev.preventDefault();
+
+				$.each(api.settings.controls, function( key, ctrl ) {
+
+					if ( ctrl.hasOwnProperty('defaultValue') ) {
+
+						var this_setting = api(key.replace('_control', ''));
+						this_setting.set( ctrl.defaultValue );
+					}
+				});
+
+				api.previewer.save();
+			});
+
+			// add a reset button for each panel
+			$('.panel-meta' ).each(function( el, key ){
+				var container = $(this).parents('.control-panel' ),
+					id = container.attr('id' ),
+					panel_name = id.replace('accordion-panel-', '');
+
+				$(this ).parent().append( '<button class="reset_panel" data-panel="' + panel_name + '">Reset Panel</button>');
+			});
+
+			// reset panel
+			$( document ).on('click', '.reset_panel', function( e ) {
+				e.preventDefault();
+
+				var panel_id = $(this).data('panel' ),
+					panel = api.panel( panel_id ),
+					sections = panel.sections();
+
+				if ( sections.length > 0 ) {
+					$.each( sections, function(){
+						//var settings = this.settings();
+						var controls = this.controls();
+
+						if ( controls.length > 0 ) {
+							$.each( controls, function( key, ctrl ) {
+								var this_setting = api( ctrl.id.replace( '_control', '' ) );
+								this_setting.set( ctrl.params.defaultValue );
+							});
+						}
+					});
+				}
+			});
+
+			//add reset section
+			$('.accordion-section-content' ).each(function( el, key ){
+				var section = $(this).parent();
+
+				var section_id  = section.attr('id' );
+				if ( section_id === 'accordion-section-customify_toolbar' ) {
+					return;
+				}
+				if ( typeof section_id !== 'undefined' && section_id.indexOf('accordion-section-' ) > -1 ) {
+
+					var id = section_id.replace('accordion-section-', '' );
+					$(this).append( '<button class="reset_section" data-section="' + id + '">Reset Section</button>');
+				}
+			});
+
+			// reset section event
+			$( document ).on('click', '.reset_section', function( e ) {
+				e.preventDefault();
+
+				var section_id = $(this).data('section' ),
+					section = api.section( section_id ),
+					controls = section.controls();
+
+				if ( controls.length > 0 ) {
+					$.each( controls, function( key, ctrl ) {
+						var this_setting = api( ctrl.id.replace( '_control', '' ) );
+						this_setting.set( ctrl.params.defaultValue );
+					});
+				}
+			});
+
+			// customify undo manager
+			init_customify_undo_manager();
+
+			var undo_manager_string = sessionStorage.getItem("cutomify_undo_manager" ),
+				undo_manager = JSON.parse( undo_manager_string );
+			update_toogle_bar_buttons();
+
+			$(document).on('click', '#customize-control-undo_customify button', function() {
+				undoManager.undo();
+				//var undo_manager_string = sessionStorage.getItem("cutomify_undo_manager" ),
+				//	undo_manager = JSON.parse( undo_manager_string );
+				//
+				//
+				//var step = undo_manager.steps[undo_manager.current_step];
+				//
+				//var setting = api( step.id );
+				//
+				//setting.set( step.old_value );
+
+				////update_toogle_bar_buttons( undo_manager );
+				//undo_manager = JSON.stringify( undo_manager );
+				//sessionStorage.setItem("cutomify_undo_manager", undo_manager);
+			});
+
+			$(document ).on('click', '#customize-control-redo_customify button', function() {
+					undoManager.redo();
+			});
+		});
+
+		wp.customize.bind('change', function( setting ){
+
+			var id = setting.id,
+				new_value = setting(),
+				old_value = _wpCustomizeSettings.settings[id].value;
+
+				if ( undo_manager_timeout !== null ){
+					clearTimeout(undo_manager_timeout);
+					undo_manager_timeout = null;
+				} else {
+					undo_manager_timeout = setTimeout( function(){
+						var undo_manager_string = sessionStorage.getItem("cutomify_undo_manager" ),
+							undo_manager = JSON.parse( undo_manager_string );
+
+						var step = { id: id, old_value: old_value, new_value: new_value };
+
+						undo_manager.steps.push(step);
+						undo_manager.current_step++;
+
+						// make undo-able
+						undoManager.add({
+							undo: function() {
+								var undo_manager_string = sessionStorage.getItem("cutomify_undo_manager" ),
+									undo_manager = JSON.parse( undo_manager_string );
+
+								if ( undo_manager.steps !== null && undo_manager.steps.length > 1 ) {
+									undo_manager.current_step--;
+									step = undo_manager.steps[undo_manager.current_step];
+									var setting = wp.customize( step.id );
+									setting.set( step.old_value );
+
+								}
+							},
+							redo: function() {
+								undo_manager.current_step++;
+							}
+						});
+
+						update_toogle_bar_buttons();
+
+						undo_manager = JSON.stringify( undo_manager );
+						sessionStorage.setItem("cutomify_undo_manager", undo_manager);
+
+						_wpCustomizeSettings.settings[id].value = new_value;
+						undo_manager_timeout = null;
+					},1000);
+				}
 		});
 
 		$(document).on('change', '.customize-control input.range-value', function() {
@@ -211,6 +504,33 @@
 			return false;
 		};
 
+
+		function init_customify_undo_manager() {
+			try {
+				var current = sessionStorage.getItem("cutomify_undo_manager");
+
+				if ( current === null ) {
+					var init_value =  { current_step: 0, steps: [] };
+
+					init_value.steps.push('0');
+
+					sessionStorage.setItem("cutomify_undo_manager", JSON.stringify( init_value ));
+				}
+
+			} catch (e) {
+				return false;
+			}
+		}
+
+		function update_toogle_bar_buttons() {
+			if ( undoManager.hasUndo() ) {
+				$('#customize-control-undo_customify button' ).removeAttr('disabled');
+			}
+
+			if ( undoManager.hasRedo() ) {
+				$('#customize-control-redo_customify button' ).removeAttr('disabled');
+			}
+		}
 	});
 
 	/**

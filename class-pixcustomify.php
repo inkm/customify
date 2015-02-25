@@ -783,14 +783,82 @@ class PixCustomifyPlugin {
 					}
 				}
 			}
+
+			// create a toolbar section which will be present all the time
+			$reset_section_settings = array(
+				'title' => 'Customify toolbar',
+				'options' => array(
+					'reset_all_button' => array( 'type' => 'button', 'label' => 'Reset Customify', 'action' => 'reset_customify', 'value' => 'Reset'),
+					'undo' => array( 'type' => 'button', 'label' => 'Undo', 'action' => 'undo_customify', 'value' => 'Undo'),
+					'redo' => array( 'type' => 'button', 'label' => 'Redo', 'action' => 'redo_customify', 'value' => 'Redo')
+				)
+			);
+
+			$wp_customize->add_section(
+				'customify_toolbar',
+				array(
+					'title' => '',
+					'priority' => 999999999
+				)
+			);
+
+			$wp_customize->add_setting(
+				'reset_customify',
+				array()
+			);
+			$wp_customize->add_control( new Pix_Customize_Button_Control(
+				$wp_customize,
+				'reset_customify',
+				array(
+					'label'      => __( 'Reset All', 'customify_txtd' ),
+					'section'    => 'customify_toolbar',
+					'settings'   => 'reset_customify',
+					'action'   => 'reset_customify',
+				)
+			));
+
+			$wp_customize->add_setting(
+				'undo_customify',
+				array()
+			);
+			$wp_customize->add_control( new Pix_Customize_Button_Control(
+				$wp_customize,
+				'undo_customify',
+				array(
+					'label'      => __( 'Undo', 'customify_txtd' ),
+					'section'    => 'customify_toolbar',
+					'settings'   => 'reset_customify',
+					'action'   => 'undo_customify',
+					'input_attrs' => array(
+						'disabled' => true
+					)
+				)
+			));
+
+			$wp_customize->add_setting(
+				'redo_customify',
+				array()
+			);
+			$wp_customize->add_control( new Pix_Customize_Button_Control(
+				$wp_customize,
+				'redo_customify',
+				array(
+					'label'      => __( 'Redo', 'customify_txtd' ),
+					'section'    => 'customify_toolbar',
+					'settings'   => 'reset_customify',
+					'action'   => 'redo_customify',
+					'input_attrs' => array(
+						'disabled' => true
+					)
+				)
+			));
+
 		}
 
 		do_action( 'customify_create_custom_control', $wp_customize );
 	}
 
-	protected function register_section( $panel_id, $section_id, $options_name, $section_settings, $wp_customize ) {
-
-		$section_id = $options_name . '[' . $section_id . ']';
+	protected function register_section( $panel_id, $section_key, $options_name, $section_settings, $wp_customize ) {
 
 		$section_args = array(
 			'priority'   => 10,
@@ -798,6 +866,7 @@ class PixCustomifyPlugin {
 			'title'      => __( 'Title Section is required', 'textdomain' ),
 			'panel'      => $panel_id,
 		);
+		$section_id = $options_name . '[' . $section_key . ']';
 
 		if ( isset( $section_settings['priority'] ) && ! empty( $section_settings['priority'] ) ) {
 			$section_args['priority'] = $section_settings['priority'];
@@ -977,6 +1046,18 @@ class PixCustomifyPlugin {
 				$control_args['choices'] = $setting_config['choices'];
 
 				$control_class_name = 'Pix_Customize_' . ucfirst( $setting_config['type'] ) . '_Control';
+				break;
+
+			case 'button' :
+
+				if ( ! isset( $setting_config['action'] ) || empty( $setting_config['action'] ) ) {
+					return;
+				}
+
+				$control_args['action'] = $setting_config['action'];
+
+				$control_class_name = 'Pix_Customize_' . ucfirst( $setting_config['type'] ) . '_Control';
+
 				break;
 
 			default:
