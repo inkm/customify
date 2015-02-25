@@ -788,7 +788,6 @@ class PixCustomifyPlugin {
 			$reset_section_settings = array(
 				'title' => 'Customify toolbar',
 				'options' => array(
-					'reset_all_button' => array( 'type' => 'button', 'label' => 'Reset Customify', 'action' => 'reset_customify', 'value' => 'Reset'),
 					'undo' => array( 'type' => 'button', 'label' => 'Undo', 'action' => 'undo_customify', 'value' => 'Undo'),
 					'redo' => array( 'type' => 'button', 'label' => 'Redo', 'action' => 'redo_customify', 'value' => 'Redo')
 				)
@@ -803,21 +802,6 @@ class PixCustomifyPlugin {
 			);
 
 			$wp_customize->add_setting(
-				'reset_customify',
-				array()
-			);
-			$wp_customize->add_control( new Pix_Customize_Button_Control(
-				$wp_customize,
-				'reset_customify',
-				array(
-					'label'      => __( 'Reset All', 'customify_txtd' ),
-					'section'    => 'customify_toolbar',
-					'settings'   => 'reset_customify',
-					'action'   => 'reset_customify',
-				)
-			));
-
-			$wp_customize->add_setting(
 				'undo_customify',
 				array()
 			);
@@ -827,7 +811,7 @@ class PixCustomifyPlugin {
 				array(
 					'label'      => __( 'Undo', 'customify_txtd' ),
 					'section'    => 'customify_toolbar',
-					'settings'   => 'reset_customify',
+					'settings'   => 'undo_customify',
 					'action'   => 'undo_customify',
 					'input_attrs' => array(
 						'disabled' => true
@@ -839,13 +823,14 @@ class PixCustomifyPlugin {
 				'redo_customify',
 				array()
 			);
+
 			$wp_customize->add_control( new Pix_Customize_Button_Control(
 				$wp_customize,
 				'redo_customify',
 				array(
 					'label'      => __( 'Redo', 'customify_txtd' ),
 					'section'    => 'customify_toolbar',
-					'settings'   => 'reset_customify',
+					'settings'   => 'redo_customify',
 					'action'   => 'redo_customify',
 					'input_attrs' => array(
 						'disabled' => true

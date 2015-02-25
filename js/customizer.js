@@ -176,22 +176,6 @@
 				});
 			});
 
-			// reset_button
-			$(document).on('click', '#customize-control-reset_customify button', function( ev ){
-				ev.preventDefault();
-
-				$.each(api.settings.controls, function( key, ctrl ) {
-
-					if ( ctrl.hasOwnProperty('defaultValue') ) {
-
-						var this_setting = api(key.replace('_control', ''));
-						this_setting.set( ctrl.defaultValue );
-					}
-				});
-
-				api.previewer.save();
-			});
-
 			// add a reset button for each panel
 			$('.panel-meta' ).each(function( el, key ){
 				var container = $(this).parents('.control-panel' ),
